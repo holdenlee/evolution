@@ -7,7 +7,7 @@ from utils import *
 #from learner import *
 
 #Perturbation functions
-def gaussian_perturb(te,spawn=100, stddev=1):
+def gaussian_perturb(te,spawn=100,stddev=1):
     sh = list(te.shape)
     if isinstance(stddev, list):
         #return [te + np.random.randn(scale=stddev[i], size=sh) for i in range(spawn)]
@@ -23,7 +23,8 @@ def simple_avg(params, rewards):
 
 #normalize rewards to be gaussian first
 def normalized_avg(params, rewards):
-    norm_rewards = (rewards - np.mean(rewards)) / np.std(rewards)
+    std = np.std(rewards)
+    norm_rewards = (rewards - np.mean(rewards)) / (std if std>0 else 1)
     return np.dot(norm_rewards, params)/len(params)
 
 #no memory, rely only on observation  
@@ -47,7 +48,7 @@ def evolve(f, te, perturb_f, combine_f, alpha=1, trials=1, spawn=100, stages=100
     tes = []
     rews = []
     for s in range(1,stages+1):
-        (diffs, children) = perturb_f(te, spawn)
+        (diffs, children) = perturb_f(te, spawn, s)
         printv(children, verbosity, 2)
         rewards = [np.mean([f(c) for i in range(trials)]) for c in children] # do i times
         step = combine_f(diffs, rewards)
@@ -66,7 +67,7 @@ if __name__=='__main__':
     evolve(lambda w: -np.sum(np.square(solution - w)), 
            #np.random.randn(3),
            np.asarray([1.7, .4, 1]),
-           lambda w, spawn: gaussian_perturb(w, spawn,0.1),
+           lambda w, spawn, s: gaussian_perturb(w, spawn,0.1),
            normalized_avg,
            alpha=0.1, 
            spawn=50,
